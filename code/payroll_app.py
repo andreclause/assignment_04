@@ -51,6 +51,7 @@ upload = st.file_uploader("Timesheet CSV", type="csv", key="timesheet")
 if upload is not None:
     timesheet = load_timesheet(upload)
     payroll = build_payroll(timesheet, roster)
+    provider_export = payroll_export(payroll)
 
     if not payroll.empty:
         st.subheader(f"Pay period ending {payroll['payroll_date'].iloc[0]}")
@@ -59,10 +60,10 @@ if upload is not None:
     overtime = payroll[payroll["pay_type"] == "overtime"]
 
     col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Employees", len(payroll))
+    col1.metric("Employees paid", len(provider_export))
     col2.metric("Total hours", f"{payroll['hours_worked'].sum():,.2f}")
     col3.metric("Total gross pay", f"${payroll['gross_pay'].sum():,.2f}")
-    col4.metric("Overtime", len(overtime))
+    col4.metric("Overtime weeks", len(overtime))
 
     if len(unmatched) > 0:
         ids = ", ".join(unmatched["employee_id"])
@@ -70,3 +71,11 @@ if upload is not None:
     else:
         st.success("Every employee on the timesheet was found on the roster.")
 
+    st.dataframe(payroll)
+    st.download_button(
+        "Download provider CSV",
+        data=provider_export.to_csv(index=False),
+        file_name="payroll.csv",
+        mime="text/csv",
+        key="download",
+    )
