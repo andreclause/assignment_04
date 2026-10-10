@@ -35,6 +35,15 @@ def calc_gross_pay(hours: float, rate: float) -> float:
         calc_gross_pay(20.0, float("nan"))  ->  0.0
     """
     # TODO: your code here
+    if pd.isna(rate):
+        return 0.0
+    if hours <= OVERTIME_THRESHOLD:
+        pay = hours * rate
+    else:
+        pay = (OVERTIME_THRESHOLD * rate
+               + (hours - OVERTIME_THRESHOLD) * rate * OVERTIME_MULTIPLIER)
+    return round(pay, 2)
+
     pass
 
 
@@ -49,6 +58,11 @@ def classify_pay(hours: float, rate: float) -> str:
     unmatched, not overtime.
     """
     # TODO: your code here
+    if pd.isna(rate):
+        return "unmatched"
+    if hours > OVERTIME_THRESHOLD:
+        return "overtime"
+    return "regular"
     pass
 
 
@@ -61,12 +75,29 @@ def add_gross_pay(payroll: pd.DataFrame) -> pd.DataFrame:
         lambda row: calc_gross_pay(row["hours_worked"], row["hourly_rate_usd"])
     """
     # TODO: your code here
+    out = payroll.copy()
+    if out.empty:  # apply(axis=1) on an empty frame returns a DataFrame, not a Series
+        out["gross_pay"] = pd.Series(dtype=float)
+        return out
+    out["gross_pay"] = out.apply(
+        lambda row: calc_gross_pay(row["hours_worked"], row["hourly_rate_usd"]), axis=1
+    )
+    return out
+
     pass
 
 
 def add_pay_type(payroll: pd.DataFrame) -> pd.DataFrame:
     """Return a copy with one new column, `pay_type`: `classify_pay` for every row."""
     # TODO: your code here
+    out = payroll.copy()
+    if out.empty:
+        out["pay_type"] = pd.Series(dtype=object)
+        return out
+    out["pay_type"] = out.apply(
+        lambda row: classify_pay(row["hours_worked"], row["hourly_rate_usd"]), axis=1
+    )
+    return out
     pass
 
 
@@ -79,6 +110,10 @@ def build_payroll(timesheet: pd.DataFrame, employees: pd.DataFrame) -> pd.DataFr
     and the roster's columns — one row per timesheet row.
     """
     # TODO: your code here
+    timesheet = add_hours_worked(timesheet)
+    employees = add_hourly_rate(employees)
+    merged = merge_employees(timesheet, employees)
+    return add_pay_type(add_gross_pay(merged))
     pass
 
 
@@ -99,4 +134,12 @@ def payroll_export(payroll: pd.DataFrame) -> pd.DataFrame:
     view of it shaped for someone else's system.
     """
     # TODO: your code here
+    payable = payroll[payroll["pay_type"] != "unmatched"]
+    return pd.DataFrame({
+        "payrolldate": payable["payroll_date"],
+        "employeeid": payable["employee_id"],
+        "hours": payable["hours_worked"],
+        "rate": payable["hourly_rate_usd"],
+        "total": payable["gross_pay"],
+    }).reset_index(drop=True)
     pass

@@ -49,6 +49,28 @@ def parse_hours(value) -> float:
       of an hour, not 45 hours, and `test_parse_hours` will tell you.
     """
     # TODO: your code here
+     if not isinstance(value, str):
+        if value is None or pd.isna(value):
+            return 0.0
+        return float(value)
+    text = value.strip()
+    if not text:
+        return 0.0
+    if "h" not in text and "m" not in text:
+        try:
+            return float(text)
+        except ValueError:
+            return 0.0
+    hours = 0.0
+    try:
+        for word in text.split():
+            if word.endswith("h"):
+                hours += float(word[:-1])
+            elif word.endswith("m"):
+                hours += float(word[:-1]) / 60
+    except ValueError:
+        return 0.0
+    return hours
     pass
 
 
@@ -73,6 +95,15 @@ def clean_currency(value) -> float:
       is not an accident — cleaning currency is something every pipeline does.
     """
     # TODO: your code here
+    if not isinstance(value, str):
+        if value is None or pd.isna(value):
+            return 0.0
+        return float(value)
+    text = value.replace("$", "").replace(",", "").strip()
+    try:
+        return float(text)
+    except ValueError:
+        return 0.0
     pass
 
 
@@ -92,6 +123,9 @@ def add_hours_worked(timesheet: pd.DataFrame) -> pd.DataFrame:
       shape: copy, add a column, return.
     """
     # TODO: your code here
+    out = timesheet.copy()
+    out["hours_worked"] = out["hours"].apply(parse_hours)
+    return out
     pass
 
 
@@ -105,6 +139,9 @@ def add_hourly_rate(employees: pd.DataFrame) -> pd.DataFrame:
     function and the other column names.
     """
     # TODO: your code here
+    out = employees.copy()
+    out["hourly_rate_usd"] = out["hourly_rate"].apply(clean_currency)
+    return out
     pass
 
 
